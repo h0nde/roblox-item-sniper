@@ -4,7 +4,7 @@ Attempts to buy limited items as quickly as possible, as soon as they go below s
 # Requirements
 - Python 3.6 or above /w `requests` module
 - Roblox account with enough robux
-- Proxies
+- HTTP/s proxies
 
 # config.json
 - `price_check_threads`: number of threads to use for checking limited prices

@@ -21,7 +21,7 @@ target_lock = threading.Lock()
 try:
     with open("cookie.txt") as fp:
         COOKIE = fp.read().strip()
-        # save some bytes by removing cookie comment :>
+        # save some bytes by stripping cookie comment :>
         COOKIE = COOKIE.split("_")[-1]
 except FileNotFoundError:
     exit("The cookie.txt file doesn't exist, or is empty.")

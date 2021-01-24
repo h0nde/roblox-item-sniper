@@ -1,6 +1,8 @@
 # roblox-item-sniper
 Attempts to buy limited items as quickly as possible, as soon as they go below set threshold price. Don't even bother with free proxies.
 
+This tool requires that you individually specify each item that you want it to scan.
+
 # Requirements
 - Python 3.6 or above /w `requests` module
 - Roblox account with enough robux

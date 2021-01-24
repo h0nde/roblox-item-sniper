@@ -16,7 +16,6 @@ target_updated = 0
 target_lock = threading.Lock()
 
 BULK_RE = re.compile(r'data\-product\-id="(\d+)".+?data\-expected\-price="(\d+)".+?data\-expected\-seller-id="(\d+)".+?data\-lowest\-private\-sale\-userasset\-id="(\d+)"', re.DOTALL)
-
 def parse_item_page(data):
     match = BULK_RE.search(data)
     product_id = int(match.group(1))

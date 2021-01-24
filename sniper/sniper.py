@@ -21,6 +21,8 @@ target_lock = threading.Lock()
 try:
     with open("cookie.txt") as fp:
         COOKIE = fp.read().strip()
+        # save some bytes by removing cookie comment :>
+        COOKIE = COOKIE.split("_")[-1]
 except FileNotFoundError:
     exit("The cookie.txt file doesn't exist, or is empty.")
 
@@ -108,7 +110,6 @@ class BuyThread(threading.Thread):
             # wait for buy event
             self.event.wait()
             self.event.clear()
-
             buy_data = '{"expectedCurrency":1,"expectedPrice":%d,"expectedSellerId":%d,"userAssetId":%d}' % (target[1], target[2], target[3])
     
             try:
@@ -120,9 +121,11 @@ class BuyThread(threading.Thread):
                 conn.putheader("X-CSRF-TOKEN", xsrf_token)
                 conn.endheaders()
                 conn.send(buy_data.encode("UTF-8"))
+
                 resp = conn.getresponse()
                 finished = time.time()
                 data = resp.read()
+
                 print(f"buy result for {target}: {data} (in {round(finished-target_updated, 4)}s)")
 
             except Exception as err:

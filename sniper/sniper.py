@@ -7,22 +7,15 @@ import re
 import time
 import ctypes
 from httpstuff import ProxyPool, AlwaysAliveConnection
+from utils import parse_item_page
 from itertools import cycle
 
+# globals
 xsrf_token = None
 refresh_count = 0
 target = None
 target_updated = 0
 target_lock = threading.Lock()
-
-BULK_RE = re.compile(r'data\-product\-id="(\d+)".+?data\-expected\-price="(\d+)".+?data\-expected\-seller-id="(\d+)".+?data\-lowest\-private\-sale\-userasset\-id="(\d+)"', re.DOTALL)
-def parse_item_page(data):
-    match = BULK_RE.search(data)
-    product_id = int(match.group(1))
-    price = int(match.group(2))
-    seller_id = int(match.group(3))
-    userasset_id = int(match.group(4))
-    return product_id, price, seller_id, userasset_id
 
 # load cookie
 try:
@@ -43,9 +36,6 @@ try:
 except FileNotFoundError:
     exit("The config.json file doesn't exist, or is corrupted.")
 
-if USE_PAGE_COMPRESSION:
-    import gzip
-
 # prevent mistakes from happening
 if any([price > 500000 for asset_id, price in TARGET_ASSETS]):
     exit("You put the price threshold above 500,000 R$ for one of your targets, are you sure about this?")
@@ -58,10 +48,13 @@ try:
 except FileNotFoundError:
     exit("The proxies.txt file was not found")
 
+
+if USE_PAGE_COMPRESSION:
+    import gzip
+
 target_iter = cycle([
     (
-        requests.get(f"https://www.roblox.com/catalog/{asset_id}/--").url \
-            .replace("https://www.roblox.com", ""),
+        requests.get(f"https://www.roblox.com/catalog/{asset_id}/--").url.replace("https://www.roblox.com", ""),
         price
     )
     for asset_id, price in TARGET_ASSETS
@@ -73,9 +66,12 @@ class StatUpdater(threading.Thread):
         self.refresh_interval = refresh_interval
     
     def run(self):
-        while 1:
+        while True:
+            ctypes.windll.kernel32.SetConsoleTitleW("  |  ".join([
+                "roblox item sniper",
+                f"refresh count: {refresh_count}"
+            ]))
             time.sleep(self.refresh_interval)
-            ctypes.windll.kernel32.SetConsoleTitleW(f"refresh count: {refresh_count}")
 
 class XsrfUpdateThread(threading.Thread):
     def __init__(self, refresh_interval):
@@ -85,7 +81,7 @@ class XsrfUpdateThread(threading.Thread):
     def run(self):
         global xsrf_token
 
-        while 1:
+        while True:
             try:
                 conn = http.client.HTTPSConnection("www.roblox.com")
                 conn.request("GET", "/home", headers={"Cookie": f".ROBLOSECURITY={COOKIE}"})
@@ -95,7 +91,7 @@ class XsrfUpdateThread(threading.Thread):
 
                 if new_xsrf != xsrf_token:
                     xsrf_token = new_xsrf
-                    print("updated xsrf:", new_xsrf)
+                    print("updated xsrf token:", new_xsrf)
 
                 time.sleep(self.refresh_interval)
             except Exception as err:
@@ -109,20 +105,24 @@ class BuyThread(threading.Thread):
     
     def run(self):
         while True:
+            # wait for buy event
             self.event.wait()
             self.event.clear()
-
+    
             try:
                 conn = self.conn.get()
-                conn.request(
-                    method="POST",
-                    url=f"/v1/purchases/products/{target[0]}",
-                    body='{"expectedCurrency":1,"expectedPrice":%d,"expectedSellerId":%d,"userAssetId":%d}' % (target[1], target[2], target[3]),
-                    headers={"Content-Type": "application/json", "Cookie": ".ROBLOSECURITY=%s" % COOKIE, "X-CSRF-TOKEN": xsrf_token}
-                )
+                conn.putrequest("POST", f"/v1/purchases/products/{target[0]}", skip_accept_encoding=True)
+                conn.putheader("Content-Type", "application/json")
+                conn.putheader("Cookie", f".ROBLOSECURITY={COOKIE}")
+                conn.putheader("X-CSRF-TOKEN", xsrf_token)
+                conn.endheaders()
+                conn.send(('{"expectedCurrency":1,"expectedPrice":%d,"expectedSellerId":%d,"userAssetId":%d}' \
+                        % (target[1], target[2], target[3])).encode("UTF-8"))
                 resp = conn.getresponse()
-                data = json.loads(resp.read())
-                print(f"buy result for {target}: {data} (in {round(time.time()-target_updated, 4)}s)")
+                finished = time.time()
+                data = resp.read()
+                print(f"buy result for {target}: {data} (in {round(finished-target_updated, 4)}s)")
+
             except Exception as err:
                 print(f"failed to buy {target} due to error: {err} {type(err)}")
 
@@ -141,27 +141,33 @@ class PriceCheckThread(threading.Thread):
             try:
                 start_time = time.time()
                 conn = proxy.get_connection("www.roblox.com")
-                conn.putrequest("GET", asset_url, True, True)
+                conn.putrequest("GET", asset_url, skip_accept_encoding=True)
                 conn.putheader("Host", "www.roblox.com")
                 conn.putheader("User-Agent", "Roblox/WinInet")
                 if USE_PAGE_COMPRESSION:
                     conn.putheader("Accept-Encoding", "gzip")
                 conn.endheaders()
+
                 resp = conn.getresponse()
                 data = resp.read()
                 if USE_PAGE_COMPRESSION:
                     data = gzip.decompress(data)
                 
+                # possible ratelimit
                 if len(data) < 1000:
                     raise Exception("Weird response")
 
                 reseller = parse_item_page(data.decode("UTF-8"))
+
                 if reseller[1] > 0 and reseller[1] <= price_threshold:
                     with target_lock:
                         if target != reseller and start_time > target_updated:
+                            # set target reseller
                             target = reseller
                             target_updated = time.time()
-                            for t in buy_threads: t.event.set()
+                            # invoke event on buythreads
+                            for t in buy_threads:
+                                t.event.set()
                             print("target set:", target)
                 
                 refresh_count += 1
@@ -169,16 +175,17 @@ class PriceCheckThread(threading.Thread):
             except:
                 pass
 
-# start threads
+# create and start threads
 stat_thread = StatUpdater(1)
-stat_thread.start()
 xsrf_thread = XsrfUpdateThread(XSRF_REFRESH_INTERVAL)
-xsrf_thread.start()
-
 buy_threads = [BuyThread() for _ in range(1)]
-for t in buy_threads: t.start()
-
 pc_threads = [PriceCheckThread(buy_threads) for _ in range(PRICE_CHECK_THREADS)]
-for t in pc_threads: t.start()
+
+stat_thread.start()
+xsrf_thread.start()
+for t in buy_threads:
+    t.start()
+for t in pc_threads:
+    t.start()
 
 print("running 100%!")

@@ -9,6 +9,7 @@ Attempts to buy limited items as quickly as possible, as soon as they go below s
 # config.json
 - `price_check_threads`: number of threads to use for checking limited prices
 - `xsrf_refresh_interval`: number of seconds between each xsrf token refresh (the lower the better, 1-5 is enough)
+- `use_page_compression`: leave it on
 - `targets`: list of `[asset_id, price_threshold]` values (the less targets, the better the performance)
 
 ```json

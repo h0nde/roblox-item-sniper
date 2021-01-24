@@ -37,10 +37,14 @@ try:
         config_data = json.load(fp)
         PRICE_CHECK_THREADS = int(config_data["price_check_threads"])
         XSRF_REFRESH_INTERVAL = float(config_data["xsrf_refresh_interval"])
+        USE_PAGE_COMPRESSION = bool(config_data["use_page_compression"])
         TARGET_ASSETS = config_data["targets"]
         del config_data
 except FileNotFoundError:
     exit("The config.json file doesn't exist, or is corrupted.")
+
+if USE_PAGE_COMPRESSION:
+    import gzip
 
 # prevent mistakes from happening
 if any([price > 500000 for asset_id, price in TARGET_ASSETS]):
@@ -140,9 +144,13 @@ class PriceCheckThread(threading.Thread):
                 conn.putrequest("GET", asset_url, True, True)
                 conn.putheader("Host", "www.roblox.com")
                 conn.putheader("User-Agent", "Roblox/WinInet")
+                if USE_PAGE_COMPRESSION:
+                    conn.putheader("Accept-Encoding", "gzip")
                 conn.endheaders()
                 resp = conn.getresponse()
                 data = resp.read()
+                if USE_PAGE_COMPRESSION:
+                    data = gzip.decompress(data)
                 
                 if len(data) < 1000:
                     raise Exception("Weird response")

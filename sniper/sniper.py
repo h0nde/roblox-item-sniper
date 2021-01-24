@@ -108,16 +108,18 @@ class BuyThread(threading.Thread):
             # wait for buy event
             self.event.wait()
             self.event.clear()
+
+            buy_data = '{"expectedCurrency":1,"expectedPrice":%d,"expectedSellerId":%d,"userAssetId":%d}' % (target[1], target[2], target[3])
     
             try:
                 conn = self.conn.get()
                 conn.putrequest("POST", f"/v1/purchases/products/{target[0]}", skip_accept_encoding=True)
+                conn.putheader("Content-Length", str(len(buy_data)))
                 conn.putheader("Content-Type", "application/json")
                 conn.putheader("Cookie", f".ROBLOSECURITY={COOKIE}")
                 conn.putheader("X-CSRF-TOKEN", xsrf_token)
                 conn.endheaders()
-                conn.send(('{"expectedCurrency":1,"expectedPrice":%d,"expectedSellerId":%d,"userAssetId":%d}' \
-                        % (target[1], target[2], target[3])).encode("UTF-8"))
+                conn.send(buy_data.encode("UTF-8"))
                 resp = conn.getresponse()
                 finished = time.time()
                 data = resp.read()

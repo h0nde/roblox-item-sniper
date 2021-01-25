@@ -147,7 +147,6 @@ class PriceCheckThread(threading.Thread):
                 start_time = time.time()
                 conn = proxy.get_connection("www.roblox.com")
                 conn.putrequest("GET", asset_url, skip_accept_encoding=True)
-                conn.putheader("Host", "www.roblox.com")
                 conn.putheader("User-Agent", "Roblox/WinInet")
                 if USE_PAGE_COMPRESSION:
                     conn.putheader("Accept-Encoding", "gzip")

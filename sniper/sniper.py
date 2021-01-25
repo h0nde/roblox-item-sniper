@@ -166,7 +166,7 @@ class PriceCheckThread(threading.Thread):
 
                 if reseller[1] > 0 and reseller[1] <= price_threshold:
                     with target_lock:
-                        if target != reseller and start_time > target_updated:
+                        if target != reseller and (not target or target[-1] != reseller[-1]) and start_time > target_updated:
                             # set target reseller
                             target = reseller
                             target_updated = time.time()

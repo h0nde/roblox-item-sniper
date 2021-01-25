@@ -1,8 +1,11 @@
 {
-    "price_check_threads": 500,
     "concurrent_buy_attempts": 5,
     "xsrf_refresh_interval": 5,
     "use_page_compression": true,
+    "price_check_method": {
+        "type": "item_page",
+        "threads": 500
+    },
     "targets": [
         [20573078, 300]
     ]

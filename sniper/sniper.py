@@ -31,7 +31,7 @@ except FileNotFoundError:
 try:
     with open("config.json") as fp:
         config_data = json.load(fp)
-        PRICE_CHECK_THREADS = int(config_data["price_check_threads"])
+        PRICE_CHECK_METHOD = config_data["price_check_method"]
         BUY_THREADS = int(config_data["concurrent_buy_attempts"])
         XSRF_REFRESH_INTERVAL = float(config_data["xsrf_refresh_interval"])
         USE_PAGE_COMPRESSION = bool(config_data["use_page_compression"])
@@ -133,7 +133,7 @@ class BuyThread(threading.Thread):
             except Exception as err:
                 print(f"failed to buy {target} due to error: {err} {type(err)}")
 
-class PriceCheckThread(threading.Thread):
+class ItemPagePriceCheckThread(threading.Thread):
     def __init__(self, buy_threads):
         super().__init__()
         self.buy_threads = buy_threads
@@ -186,7 +186,11 @@ class PriceCheckThread(threading.Thread):
 stat_thread = StatUpdater(1)
 xsrf_thread = XsrfUpdateThread(XSRF_REFRESH_INTERVAL)
 buy_threads = [BuyThread() for _ in range(BUY_THREADS)]
-pc_threads = [PriceCheckThread(buy_threads) for _ in range(PRICE_CHECK_THREADS)]
+
+if PRICE_CHECK_METHOD["type"] == "item_page":
+    pc_threads = [ItemPagePriceCheckThread(buy_threads) for _ in range(PRICE_CHECK_METHOD["threads"])]
+else:
+    exit("Unrecognized price check method.")
 
 stat_thread.start()
 xsrf_thread.start()

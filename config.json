@@ -1,5 +1,6 @@
 {
     "price_check_threads": 500,
+    "concurrent_buy_attempts": 5,
     "xsrf_refresh_interval": 5,
     "use_page_compression": true,
     "targets": [

@@ -31,6 +31,7 @@ try:
     with open("config.json") as fp:
         config_data = json.load(fp)
         PRICE_CHECK_THREADS = int(config_data["price_check_threads"])
+        BUY_THREADS = int(config_data["concurrent_buy_attempts"])
         XSRF_REFRESH_INTERVAL = float(config_data["xsrf_refresh_interval"])
         USE_PAGE_COMPRESSION = bool(config_data["use_page_compression"])
         TARGET_ASSETS = config_data["targets"]
@@ -182,7 +183,7 @@ class PriceCheckThread(threading.Thread):
 # create and start threads
 stat_thread = StatUpdater(1)
 xsrf_thread = XsrfUpdateThread(XSRF_REFRESH_INTERVAL)
-buy_threads = [BuyThread() for _ in range(5)]
+buy_threads = [BuyThread() for _ in range(BUY_THREADS)]
 pc_threads = [PriceCheckThread(buy_threads) for _ in range(PRICE_CHECK_THREADS)]
 
 stat_thread.start()

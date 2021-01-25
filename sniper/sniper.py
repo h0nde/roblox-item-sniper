@@ -16,6 +16,7 @@ refresh_count = 0
 target = None
 target_updated = 0
 target_lock = threading.Lock()
+uaid_cooldown = None
 
 # load cookie
 try:
@@ -138,7 +139,7 @@ class PriceCheckThread(threading.Thread):
         self.buy_threads = buy_threads
     
     def run(self):
-        global target, target_updated, refresh_count
+        global target, target_updated, refresh_count, uaid_cooldown
 
         while True:
             asset_url, price_threshold = next(target_iter)
@@ -166,10 +167,11 @@ class PriceCheckThread(threading.Thread):
 
                 if reseller[1] > 0 and reseller[1] <= price_threshold:
                     with target_lock:
-                        if target != reseller and (not target or target[-1] != reseller[-1]) and start_time > target_updated:
+                        if target != reseller and (not uaid_cooldown or uaid_cooldown[0] != reseller[-1] or time.time()-uaid_cooldown[1] >= 5) and start_time > target_updated:
                             # set target reseller
                             target = reseller
                             target_updated = time.time()
+                            uaid_cooldown = [reseller[-1], time.time()]
                             # invoke event on buythreads
                             for t in buy_threads:
                                 t.event.set()

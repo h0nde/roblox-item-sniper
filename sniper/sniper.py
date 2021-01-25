@@ -44,14 +44,6 @@ except FileNotFoundError:
 if any([price > 500000 for asset_id, price in TARGET_ASSETS]):
     exit("You put the price threshold above 500,000 R$ for one of your targets, are you sure about this?")
 
-# load proxies
-proxy_pool = ProxyPool(PRICE_CHECK_THREADS + 1)
-try:
-    with open("proxies.txt") as f:
-        proxy_pool.load(f.read().splitlines())
-except FileNotFoundError:
-    exit("The proxies.txt file was not found")
-
 
 if USE_PAGE_COMPRESSION:
     import gzip
@@ -134,16 +126,17 @@ class BuyThread(threading.Thread):
                 print(f"failed to buy {target} due to error: {err} {type(err)}")
 
 class ItemPagePriceCheckThread(threading.Thread):
-    def __init__(self, buy_threads):
+    def __init__(self, buy_threads, proxy_pool):
         super().__init__()
         self.buy_threads = buy_threads
+        self.proxy_pool = proxy_pool
     
     def run(self):
         global target, target_updated, refresh_count, uaid_cooldown
 
         while True:
             asset_url, price_threshold = next(target_iter)
-            proxy = proxy_pool.get()
+            proxy = self.proxy_pool.get()
             
             try:
                 start_time = time.time()
@@ -178,7 +171,7 @@ class ItemPagePriceCheckThread(threading.Thread):
                             print("target set:", target)
                 
                 refresh_count += 1
-                proxy_pool.put(proxy)
+                self.proxy_pool.put(proxy)
             except:
                 pass
 
@@ -188,7 +181,15 @@ xsrf_thread = XsrfUpdateThread(XSRF_REFRESH_INTERVAL)
 buy_threads = [BuyThread() for _ in range(BUY_THREADS)]
 
 if PRICE_CHECK_METHOD["type"] == "item_page":
-    pc_threads = [ItemPagePriceCheckThread(buy_threads) for _ in range(PRICE_CHECK_METHOD["threads"])]
+    # load proxies
+    proxy_pool = ProxyPool(PRICE_CHECK_METHOD["threads"] + 1)
+    try:
+        with open("proxies.txt") as f:
+            proxy_pool.load(f.read().splitlines())
+    except FileNotFoundError:
+        exit("The proxies.txt file was not found")
+
+    pc_threads = [ItemPagePriceCheckThread(buy_threads, proxy_pool) for _ in range(PRICE_CHECK_METHOD["threads"])]
 else:
     exit("Unrecognized price check method.")
 

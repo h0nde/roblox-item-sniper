@@ -182,7 +182,7 @@ class PriceCheckThread(threading.Thread):
 # create and start threads
 stat_thread = StatUpdater(1)
 xsrf_thread = XsrfUpdateThread(XSRF_REFRESH_INTERVAL)
-buy_threads = [BuyThread() for _ in range(1)]
+buy_threads = [BuyThread() for _ in range(5)]
 pc_threads = [PriceCheckThread(buy_threads) for _ in range(PRICE_CHECK_THREADS)]
 
 stat_thread.start()

@@ -9,7 +9,7 @@ This tool requires that you individually specify each item that you want it to s
 - HTTP/s proxies
 
 # config.json
-- `price_check_threads`: number of threads to use for checking limited prices
+- `price_check_method`: the method to be used for scanning item prices, along with it's parameters
 - `concurrent_buy_attempts`: number of buy requests to send, everytime a matching resale is detected
 - `xsrf_refresh_interval`: number of seconds between each xsrf token refresh (the lower the better, 1-5 is enough)
 - `use_page_compression`: leave it on

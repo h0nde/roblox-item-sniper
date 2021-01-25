@@ -123,10 +123,10 @@ class BuyThread(threading.Thread):
                 conn.send(buy_data.encode("UTF-8"))
 
                 resp = conn.getresponse()
-                finished = time.time()
+                elapsed = finished - target_updated
                 data = resp.read()
 
-                print(f"buy result for {target}: {data} (in {round(finished-target_updated, 4)}s)")
+                print(f"buy result for {target}: {data} (in {round(elapsed, 4)}s)")
 
             except Exception as err:
                 print(f"failed to buy {target} due to error: {err} {type(err)}")

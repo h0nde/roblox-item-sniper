@@ -34,6 +34,5 @@ This tool requires that you individually specify each item that you want it to s
 1. Run `sniper.bat`
 
 # Known bugs / To-Do
-- The bot attempts to purchase glitched/'recoil' resellers (this is a bug on roblox's side that happens for a second after a limited is purchased)
 - PriceCheckThread should have exception alerts
 - Should implement support for economy API

@@ -123,7 +123,7 @@ class BuyThread(threading.Thread):
                 conn.send(buy_data.encode("UTF-8"))
 
                 resp = conn.getresponse()
-                elapsed = finished - target_updated
+                elapsed = time.time() - target_updated
                 data = resp.read()
 
                 print(f"buy result for {target}: {data} (in {round(elapsed, 4)}s)")

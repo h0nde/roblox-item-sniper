@@ -83,7 +83,7 @@ class XsrfUpdateThread(threading.Thread):
                 conn.request("GET", "/home", headers={"Cookie": f".ROBLOSECURITY={COOKIE}"})
                 resp = conn.getresponse()
                 data = resp.read()
-                new_xsrf = data.decode("UTF-8").split("setToken('")[1].split("'")[0]
+                new_xsrf = data.decode("UTF-8").split("<meta name=csrf-token data-token=")[1].split(">")[0]
 
                 if new_xsrf != xsrf_token:
                     xsrf_token = new_xsrf

@@ -79,11 +79,11 @@ class XsrfUpdateThread(threading.Thread):
 
         while True:
             try:
-                conn = http.client.HTTPSConnection("www.roblox.com")
-                conn.request("GET", "/home", headers={"Cookie": f".ROBLOSECURITY={COOKIE}"})
+                conn = http.client.HTTPSConnection("economy.roblox.com")
+                conn.request("POST", "/v1/developer-exchange/submit", headers={"Cookie": f".ROBLOSECURITY={COOKIE}"})
                 resp = conn.getresponse()
                 data = resp.read()
-                new_xsrf = data.decode("UTF-8").split("setToken('")[1].split("'")[0]
+                new_xsrf = resp.headers["X-CSRF-TOKEN"]
 
                 if new_xsrf != xsrf_token:
                     xsrf_token = new_xsrf
